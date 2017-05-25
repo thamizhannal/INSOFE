@@ -1,0 +1,237 @@
+# Project: STOCK PRICE PREDICTION AND PORTFOLIO OPTIMIZATION
+# Name: Thamizhannal Paramasivam
+# Batch No: 22
+#
+# Note: Load this project as R project in RStudio and Run it.
+############################  STOCK PRICE PREDICTION - MAIN PROGRAM ###########################
+rm(list=ls(all=TRUE))
+
+# Loading Library
+library(fpp)
+library(ggplot2)
+library(ggfortify) # Extended ggplot2
+
+# Default working dir is package folder, com.insofe.stock
+#setwd(getwd())
+
+print(getwd())
+
+# Include source from R files
+source("R/preprocess.R")
+source("R/timeseries.R")
+source("R/Utils.R")
+source("R/const.R")
+
+# create
+data_path = paste(getwd(),"data",sep="/")
+out_path =  paste(getwd(),"output",sep="/")
+
+# Script return calculator
+script_return = data.frame(matrix(nrow=20,ncol=5))
+colnames(script_return) =  c("script", "buy_price","curr_price",
+                             "CARG","invest_period" )
+
+all_script_list = c("BAJFINANCE.csv", "CADILAHC.csv", "HDFC.csv", "IOC.csv", "LT.csv",
+                    "RELIANCE.csv", "TATAMOTORS.csv", "TITAN.csv", "BHARATFORG.csv",
+                    "HAVELLS.csv", "HINDZINC.csv", "ITC.csv", "MOTHERSUMI.csv",
+                    "SHREECEM.csv", "TORNTPHARM.csv", "BRITANNIA.csv", "HDFCBANK.csv", "INFY.csv",
+                    "PIDILITIND.csv", "TCS.csv")
+#all_script_list = c("ITC.csv")
+# Number of days to forecast a stock price
+h=14
+# Investment period in years, default = 5 years starting from 2012 to 2016.
+invest_period = 5
+
+# Train data - Historical Stock price Stating date
+#start_date = "2012-01-02"
+start_date = "2012-01-02"
+# Historical Stock price End date
+end_date = "2016-12-31"
+
+# Test data -
+test_start_date = "2017-01-01"
+# Historical Stock price End date
+test_end_date = "2017-01-14"
+
+# Script index
+idx = 0
+
+for(script in all_script_list) {
+
+  idx = idx + 1
+  script_name_pdf = sub(pattern = ".csv", replacement = ".pdf", x=script)
+  script_name = sub(pattern = ".csv", replacement = "", x=script)
+  script_path = paste(data_path,script,sep="/")
+  script_out_path = paste(out_path,script_name_pdf,sep="/")
+
+  row_idx=1
+  # For Storing Model metrics
+  all_models_metrics = data.frame(matrix(c(0),nrow=3,ncol=5 ))
+  colnames(all_models_metrics) = c("TrainMAPE","TestMAPE", "AIC","Pvalue","lag")
+  rownames(all_models_metrics) = c("AutoArima", "HoltWinter","NeuralNet")
+
+  # For storing forecast metrics
+  res_forecast = data.frame(matrix(c(0),nrow=h,ncol=6))
+  colnames(res_forecast) = c("date", "actual", "arima", "auto_arima", "HoltWinter", "NNet")
+  # TODO: File Existance check
+
+  # 1. Load Script from CSV File and Preprocess Stock Data
+  # a) Extract stock data and adjustedClosing price from CSV
+  # b) Merge this extracted stock date and AdjClose price with continous date. Make Holiday price as NA.
+  # c) Impute weekends and Nifty Holidays stock price as last working day price
+
+  stock_data = proc_stock_data(script_path)
+  stock_ts_freq7 = stock_data_ts(stock_data, freq=7,script_name )
+
+  # Compute script return for 5 years and update it script_return data frame
+  ret = comp_stock_return(script, stock_data, start_date, end_date, invest_period)
+  script_return$script[idx] = ret$name
+  script_return$buy_price[idx] = ret$buy
+  script_return$curr_price[idx] = ret$curr
+  script_return$invest_period[idx] = ret$period
+  script_return$CARG[idx] = round(ret$CARG,2)
+  sprintf("script: %s : Retrun: %s",ret$name,round(ret$CARG,2))
+
+  #. 2. Get TS data format
+  stock_ts = stock_data_ts(stock_data, 365,script_name)
+  ts_decom = stock_ts_decom(stock_ts, TRUE,script_name)
+
+  plot_acf_pacf(stock_ts,lag=12,script_name)
+  #  ndiffs() -Arima-order diff
+  # To determine the appropriate number of first differences required for a non-seasonal TS.
+  ndiff_valaue= ndiffs(stock_ts)
+
+  # Arima - seasonal diff component.
+  # determining whether seasonal differencing is required is nsdiffs()
+  nsdiff = nsdiffs(stock_ts)
+
+  stock_ts_diff1= stock_ts_diff(stock_ts,diff=ndiff_valaue, plot=TRUE,script_name)
+  plot_acf_pacf(stock_ts_diff1,lag=12,script_name)
+
+  ############## Prepare Test Data ####################
+  stock_test_data = proc_stock_test_data(script_path,
+                                         from =as.Date(test_start_date),
+                                         to=as.Date(test_end_date))
+  res_forecast$actual = stock_test_data$adjclose
+  res_forecast$date = stock_test_data$date
+
+  print(paste("Test Data set: start date:", start_date," End Date:", test_end_date))
+  ######################## RUN MODELS #########################################################
+  ######################## 1. Run manual arima model ##########################################
+
+  arima_model = run_manual_arima(stock_ts,
+                                 order = c(0,ndiff_valaue,0),
+                                 seasonal = c(0,nsdiff,0) )
+  arima_model
+  forecast_arima = model_forecast(object = arima_model,h=h)
+
+
+  forecast_arima
+  res_forecast$arima = forecast_arima$mean
+
+  # plot residuals - TODO
+  display_residual(arima_model)
+  # Run Box-Test and Identify lag for small p-value
+  res_box_test = run_box_test(arima_model)
+  sprintf("Box-Test result: small p-value:%f found at lag=%d",res_box_test$p,res_box_test$lag)
+  acc = accuracy(forecast_arima, stock_test_data$adjclose)
+  #update_res_metrics(all_models_metrics, aic=arima_model$aic, acc, res_box_test, row_idx)
+
+  ############# 2. Run Auto Arima Model #########################################
+  auto_arima_model = run_auto_arima(stock_ts_freq7)
+  forecast_auto_arima = model_forecast(object = auto_arima_model,h=h)
+  res_forecast$auto_arima = forecast_auto_arima$mean
+
+  # plot residuals - TODO
+  display_residual(forecast_auto_arima)
+  # Run Box-Test and Identify lag for small p-value
+  res_box_test = run_box_test(forecast_auto_arima)
+  sprintf("Box-Test Result: small p-value:%f found at lag=%d",res_box_test$p,res_box_test$lag)
+  acc = accuracy(forecast_auto_arima, stock_test_data$adjclose)
+
+
+  #update_res_metrics(all_models_metrics, aic=auto_arima_model$aic, acc, res_box_test, row_idx)
+  all_models_metrics$TrainMAPE[row_idx] = acc[1,5]
+  all_models_metrics$TestMAPE[row_idx] = acc[2,5]
+  all_models_metrics$AIC[row_idx] = auto_arima_model$aic
+  all_models_metrics$Pvalue[row_idx] = res_box_test$p
+  all_models_metrics$lag[row_idx] = res_box_test$lag
+
+  ############# 3. Run Holt-Winter Model #########################################
+  hw_mdl = hw(stock_ts_freq7,  seasonal = "additive")
+  summary(hw_mdl)
+  forecast_hw = model_forecast(object = hw_mdl,h=h)
+  forecast_hw
+  res_forecast$HoltWinter = forecast_hw$mean
+  # plot residuals - TODO
+  display_residual(hw_mdl)
+  # Run Box-Test and Identify lag for small p-value
+  res_box_test = run_box_test(hw_mdl)
+  sprintf("Box-Test Result: small p-value:%f found at lag=%d",res_box_test$p,res_box_test$lag)
+  acc = accuracy(forecast_hw, stock_test_data$adjclose)
+
+  row_idx = row_idx + 1
+  #update_res_metrics(all_models_metrics,aic=hw_mdl$model$aic , acc, res_box_test, row_idx)
+  all_models_metrics$TrainMAPE[row_idx] = acc[1,5]
+  all_models_metrics$TestMAPE[row_idx] = acc[2,5]
+  all_models_metrics$AIC[row_idx] = hw_mdl$model$aic
+  all_models_metrics$Pvalue[row_idx] = res_box_test$p
+  all_models_metrics$lag[row_idx] = res_box_test$lag
+
+  ############# 4. Neural Network Time Series analysis Model #########################################
+  nnet_model <- nnetar(stock_ts_freq7)
+  summary(nnet_model)
+
+  nnet_forecast<-as.vector(forecast(nnet_model,h = h))
+  nnet_forecast
+  display_residual(nnet_model)
+  # Run Box-Test and Identify lag for small p-value
+  res_box_test = run_box_test(nnet_model)
+  sprintf("Box-Test Result: small p-value:%f found at lag=%d",res_box_test$p,res_box_test$lag)
+  acc = accuracy(forecast_hw, stock_test_data$adjclose)
+  res_forecast$NNet = nnet_forecast$mean
+
+  row_idx = row_idx + 1
+  #update_res_metrics(all_models_metrics, 0, acc, res_box_test, row_idx)
+  all_models_metrics$TrainMAPE[row_idx] = acc[1,5]
+  all_models_metrics$TestMAPE[row_idx] = acc[2,5]
+  all_models_metrics$AIC[row_idx] = 0
+  all_models_metrics$Pvalue[row_idx] = res_box_test$p
+  all_models_metrics$lag[row_idx] = res_box_test$lag
+
+  ########################### SAVE ALL PLOT IN <<script_name.pdf on output directory ##############
+  draw_all_plots(stock_data, stock_ts, ts_decom, stock_ts_diff1,
+                 arima_model,forecast_arima,
+                 auto_arima_model,forecast_auto_arima,
+                 hw_mdl, forecast_hw,
+                 nnet_model,nnet_forecast,
+                 script_name, h,script_out_path)
+
+  ############################# PERSIST MODEL and FORECAST METRICS ########################################
+  print(paste("Model Metrics", script_name))
+  print(all_models_metrics)
+  models_name = paste0(script_name,"_models_metrics",".Rda")
+  script_out_model_metrics_path =  paste(out_path,models_name,sep="/")
+  save(all_models_metrics, file=script_out_model_metrics_path)
+
+  forecast_metrics = paste0(script_name,"_forecast_metrics",".Rda")
+  script_out_forecast_metrics_path = paste(out_path,sep="/",forecast_metrics)
+  print(paste("Forecast Metrics: ",script_name))
+  print(res_forecast)
+  save(res_forecast, file=script_out_forecast_metrics_path)
+
+  sprintf("##########################################################################################")
+}
+
+
+print("ALL 20 STOCKS RETURNS METRICS")
+
+script_out_all_script_return_metrics_path = paste(out_path,sep="/","all_script_return.Rda")
+save(script_return, file = script_out_all_script_return_metrics_path)
+print(script_return)
+
+#####################################################################
+
+
+
+

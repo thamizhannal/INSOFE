@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "# Project: STOCK PRICE PREDICTION AND PORTFOLIO OPTIMIZATION\n# Name: Thamizhannal Paramasivam\n# Batch No: 22\n#\n# Note: Load this project as R project in RStudio and Run it.\n############ STOCK PRICE PREDICTION ############################\nrm(list=ls(all=TRUE))\n# Input Data: Downloaded 20 stocks from Nifty50\n# Train Data: Duration: start_date: 2012-01-01 end_date: 2016-12-31\n# Test Data: Duration: start_date: 2017-01-02 end_date: 2017-01-14\n# Output: Please refer output folder for\n# 1. <script_name>.pdf - ITC.pdf - contains all the plots about ITC\n# 2. <script_name__forecast_metrics.Rda> - ITC_forecast_metrics.Rda all the forecast metrics\n# 3. <script_name_ITC_models_metrics.Rda> - ITC_models_metrics.Rda contains model metrics\n# 4. all_script_return.Rda - contains all stocks return for 5 years.\n\nsource(\"R/StockMainProg.R\")\n\n########### PORTFOLIO OPTIMIZATION ##############################\n# METHOD-1: BENCH MARK portfolio return\n# > naive_portfolio_ret()\n# [1] \"Naive Portfolio Return computation\"\n# [1] \"Top stocks return data:\"\n# stocks returns\n# MOTHERSUMI MOTHERSUMI   55.98\n# BAJFINANCE BAJFINANCE   54.34\n# SHREECEM     SHREECEM   47.91\n# BRITANNIA   BRITANNIA   47.14\n# TORNTPHARM TORNTPHARM   40.49\n# [1] \"Stock Allocation:\"\n# [1] 0.2 0.2 0.2 0.2 0.2\n# [1] \"portfolio return: 73758\"\n# portfolio return in percentage: 49.1\n\n# METHOD-2: MonteCarlo Simulation\n# assumptions:\n# start_date = \"2012-01-02\"\n# end_date = \"2016-12-31\"\n# min_investment = 0.10 # 10% per eacg stock\n# Max inviestment is not more than 30% on each stock in portfolio\n# max_investment = 0.30\n\n\nrm(list=ls(all=TRUE))\n# Run Portfolio Optimization using MonteCarlo Simulation\nsource(\"R/OptimizationMonteCarlo.R\")\n# OUTPUT:\n# Portfolio return for 1 year\n# Invested Amount: 15000\n# Optimized Stock Allocation: 0.286 0.2970 0.170 0.120 0.125\n# portfolio return: 76926.2\n# portfolio return in percentage: 51.28\n# Simulation Iteration: 1e+05\n#\"Top stocks return data:\"\n# stocks returns\n# MOTHERSUMI MOTHERSUMI   55.98\n# BAJFINANCE BAJFINANCE   54.34\n# SHREECEM     SHREECEM   47.91\n# BRITANNIA   BRITANNIA   47.14\n# TORNTPHARM TORNTPHARM   40.49\n\n## METHOD-3: SIMULATED ANNEALING OPTIMIZATION SOLUTIONS\n# ASSUMPTIONS:\n# Portfolio return for 1 year\n# start_date = \"2012-01-02\"\n# end_date = \"2016-12-31\"\n# min_investment = 10% per each stock\n# Max inviestment is not more than 30% on each stock in portfolio\n# max_investment = 30% per each stock\n# max_iterations = 100000\n# Investment amount = 150000\n# Choosen Top5 stocks returns\n# MOTHERSUMI MOTHERSUMI   55.98\n# BAJFINANCE BAJFINANCE   54.34\n# SHREECEM     SHREECEM   47.91\n# BRITANNIA   BRITANNIA   47.14\n# TORNTPHARM TORNTPHARM   40.49\n\nrm(list=ls(all=TRUE))\n# Run Portfolio Optimization using SA\nsource(\"R/OptimizationSimulatedAnnealing.R\")\n# OUTPUT:\n# Invested Amount: 15000\n# Optimized Stock Allocation: 0.33 0.23 0.10 0.12 0.20\n# portfolio return: 76443.23\n# portfolio return in percentage: 51.3\n# Total returns =  76946.61\n##############################################################\n\n",
+    "created" : 1489157066983.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3494886756",
+    "id" : "C8D43DC6",
+    "lastKnownWriteTime" : 1489209602,
+    "last_content_update" : 1489209602454,
+    "path" : "~/INSOFE_CPEE/project/source_code/com.insofe.stock/R/ProjectMain_Stock_Price_Portfolio_Opt.R",
+    "project_path" : "R/ProjectMain_Stock_Price_Portfolio_Opt.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
