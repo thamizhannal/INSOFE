@@ -4,7 +4,7 @@
 #### 1. CSE 7111C - Planning and Thinking Skills For Architecting Data Science Solutions
 #### 2. CSE 7112C - Essential Engineering Skills in Big Data Analytics
 #### 3. CSE7315C - Fundamentals of Probability and Statistical Methods
-#### 4. CSE 7202C - Statistics and Probability in Decision Modeling
+#### 4. [CSE 7202C - Statistics and Probability in Decision Modeling](https://github.com/thamizhannal/INSOFE/tree/master/CSE_7202C%20-%20Statistics%20and%20Probability%20in%20Decision%20Modeling)
 #### 5. CSE 7114C - Methods and Algorithms in Machine Learning – Unsupervised
 #### 6. CSE 7405C - Methods and Algorithms in Machine Learning – Supervised
 #### 7. CSE 7213C - Optimization and Decision Analysis
